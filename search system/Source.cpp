@@ -68,7 +68,7 @@ public:
 
     // Возвращает топ-5 самых релевантных документов в виде пар: {id, релевантность}
     vector<Document> FindTopDocuments(const string& raw_query) const {
-        set<string> query_words = ParseQuery(raw_query);
+        auto query_words = ParseQuery(raw_query);
         auto docs = FindAllDocuments(query_words);
         sort(docs.begin(), docs.end(), [](const Document& lhs, const Document& rhs) {
             return lhs.relevance > rhs.relevance;
@@ -83,6 +83,11 @@ private:
     struct DocumentContent {
         int id = 0;
         vector<string> words;
+    };
+
+    struct Query {
+        set<string> minus_words;
+        set<string> plus_words;
     };
 
     vector<DocumentContent> documents_;
@@ -104,8 +109,22 @@ private:
         return words;
     }
 
+    // возвращает set строки ввода (запрос пользователя) без стоп-слов
+    Query ParseQuery(const string& text) const {
+        Query query_words;
+        for (const string& word : SplitIntoWordsNoStop(text)) {
+            if (word[0] == '-') {
+                query_words.minus_words.insert(word.substr(1));
+            }
+            else {
+                query_words.plus_words.insert(word);
+            }
+        }
+        return query_words;
+    }
+
     // Для каждого документа возвращает его id и релевантность
-    vector<Document> FindAllDocuments(const set<string>& query_words) const {
+    vector<Document> FindAllDocuments(const Query& query_words) const {
         vector<Document> matched_documents;
         for (const auto& document : documents_) {
             const int relevance = MatchDocument(document, query_words);
@@ -116,18 +135,9 @@ private:
         return matched_documents;
     }
 
-    // возвращает set строки ввода (запрос пользователя) без стоп-слов
-    set<string> ParseQuery(const string& text) const {
-        set<string> query_words;
-        for (const string& word : SplitIntoWordsNoStop(text)) {
-            query_words.insert(word);
-        }
-        return query_words;
-    }
-
     // сопоставляет запрос и вывод поисковой системы, возвращает релевантность
-    static int MatchDocument(const DocumentContent content, const set<string>& query_words) {
-        if (query_words.empty()) {
+    static int MatchDocument(const DocumentContent content, const Query& query_words) {
+        if (query_words.minus_words.empty() && query_words.plus_words.empty()) {
             return 0;
         }
         set<string> matched_words;
@@ -135,7 +145,10 @@ private:
             if (matched_words.count(word) != 0) {
                 continue;
             }
-            if (query_words.count(word) != 0) {
+            if (query_words.minus_words.count(word)) {
+                return 0;
+            }
+            if (!query_words.minus_words.count(word) && query_words.plus_words.count(word)) {
                 matched_words.insert(word);
             }
         }
