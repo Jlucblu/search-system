@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <map>
 #include <cmath>
+#include <numeric>
 
 using namespace std;
 
@@ -183,9 +184,7 @@ private:
         if (ratings.empty()) {
             return 0;
         }
-        for (const int num : ratings) {
-            sum += num;
-        }
+        sum = accumulate(ratings.begin(), ratings.end(), 0);
         return sum / quantity;
     }
 
