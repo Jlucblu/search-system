@@ -11,8 +11,11 @@
 
 using namespace std;
 
+/*
+//---------------------//
 // Debag Functions
-
+//---------------------//
+ 
 // func map
 template<typename Container_First, typename Container_Second>
 ostream& Print(ostream& out, const map<Container_First, Container_Second>& container) {
@@ -104,11 +107,14 @@ void RunTestImpl(const Function& func, const string& function_name) {
 }
 
 #define RUN_TEST(func) RunTestImpl(func, #func)
+*/
 
-
+//---------------------//
 // Search_Server start
+//---------------------//
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
+const double EPSILON = 1e-6;
 
 // ввод текста
 string ReadLine() { 
@@ -147,10 +153,27 @@ vector<string> SplitIntoWords(const string& text) {
     return words;
 }
 
+template <typename StringContainer>
+set<string> MakeUniqueNonEmptyStrings(const StringContainer& strings) {
+    set<string> non_empty_strings;
+    for (const string& str : strings) {
+        if (!str.empty()) {
+            non_empty_strings.insert(str);
+        }
+    }
+    return non_empty_strings;
+}
+
 struct Document {
-    int id;
-    double relevance;
-    int rating;
+    Document() = default;
+    Document(int id, double relevance, int rating) 
+        : id(id)
+        , relevance(relevance)
+        , rating(rating){}
+
+    int id = 0;
+    double relevance = 0.0;
+    int rating = 0;
 };
 
 enum class DocumentStatus {
@@ -163,6 +186,16 @@ enum class DocumentStatus {
 // добавление пары (вывода поисковой системы) в вектор : {ID документа ; вектор текста без стоп-слов}
 class SearchServer {
 public:
+    SearchServer() = default;
+    inline static constexpr int INVALID_DOCUMENT_ID = -1;
+
+    template <typename StringCollection>
+    explicit SearchServer(const StringCollection& stop_words) 
+        : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {}
+    
+    explicit SearchServer(const string& stop_words_text)
+        : SearchServer(SplitIntoWords(stop_words_text)) {}
+
     // перебирает стоп-слова, возвращает set
     void SetStopWords(const string& text) {
         for (const string& word : SplitIntoWords(text)) {
@@ -170,46 +203,58 @@ public:
         }
     }
 
-    void AddDocument(int document_id, const string& document, DocumentStatus status, const vector<int>& ratings) {
-        ++document_count_;
-        const vector<string> words = SplitIntoWordsNoStop(document);
-        const double inv_word_count = 1.0 / words.size();
-        documents_rating_.insert({ document_id, ComputeAverageRating(ratings) });
-        for (const string& word : words) {
-            word_to_document_freqs_[word][document_id] += inv_word_count;
+    [[nodiscard]] bool AddDocument(int document_id, const string& document, DocumentStatus status, const vector<int>& ratings) {
+        if (document_id < 0 || status_.count(document_id)) {
+            return false;
         }
-        status_.emplace( document_id, DocumentData{ComputeAverageRating(ratings), status });
+
+        vector<string> split_into_words_no_stop;
+        if (SplitIntoWordsNoStop(document, split_into_words_no_stop)) {
+            const vector<string> words = split_into_words_no_stop;
+            const double inv_word_count = 1.0 / words.size();
+            for (const string& word : words) {
+                word_to_document_freqs_[word][document_id] += inv_word_count;
+            }
+            status_.emplace( document_id, DocumentData{ComputeAverageRating(ratings), status });
+            //document_ids_.push_back(document_id);
+            return true;
+        } 
+        return false;
     }
 
     template <typename Status>
     // Возвращает топ-5 самых релевантных документов в виде пар: {id, релевантность}
-    vector<Document> FindTopDocuments(const string& raw_query, Status status) const {
-        const Query query = ParseQuery(raw_query);
-        auto matched_documents = FindAllDocuments(query, status);
+    [[nodiscard]] bool FindTopDocuments(const string& raw_query, Status status, vector<Document>& matched_documents) const {
+        Query query;
+        if (ParseQuery(raw_query, query)) {
+            matched_documents = FindAllDocuments(query, status);
 
-        sort(matched_documents.begin(), matched_documents.end(),
-            [](const Document& lhs, const Document& rhs) {
-                const double EPSILON = 1e-6;
+            sort(matched_documents.begin(), matched_documents.end(), [](const Document& lhs, const Document& rhs) {
                 double xhs = lhs.relevance - rhs.relevance;
                 return lhs.relevance > rhs.relevance || ((abs(xhs) < EPSILON) && (lhs.rating > rhs.rating));
-            });
+                });
 
-        if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
-            matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
+            if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
+                matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
+            }
+            return true;
         }
-        return matched_documents;
+        return false;
     }
 
-    vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus status) const {
-        return FindTopDocuments(raw_query, [&status](int id, DocumentStatus r_status, int rating) {
-            return r_status == status;
-            });
+    [[nodiscard]] bool FindTopDocuments(const string& raw_query, DocumentStatus status, vector<Document>& matched_documents) const {
+        if (FindTopDocuments(raw_query, [status](int document_id, DocumentStatus document_status, int rating) { 
+            return document_status == status; }, matched_documents)) {
+            return true;
+        }
+        return false;
     }
 
-    vector<Document> FindTopDocuments(const string& raw_query) const {
-        return FindTopDocuments(raw_query, [](int id, DocumentStatus status, int rating) {
-            return status == DocumentStatus::ACTUAL;
-            });
+    [[nodiscard]] bool FindTopDocuments(const string& raw_query, vector<Document>& matched_documents) const {
+        if (FindTopDocuments(raw_query, DocumentStatus::ACTUAL, matched_documents)) {
+            return true;
+        }
+        return false;
     }
 
     int GetDocumentCount() const {
@@ -217,28 +262,56 @@ public:
     }
 
     // сопоставляет запрос и вывод поисковой системы, возвращает релевантность
-    tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
-        Query query_words = ParseQuery(raw_query);
-        vector<string> words;
-        for (const string& word : query_words.plus_words) {
-            if (word_to_document_freqs_.count(word) == 0) {
-                continue;
+    [[nodiscard]] bool MatchDocument(const string& raw_query, int document_id, tuple<vector<string>, DocumentStatus>& result) const {
+        Query query_words;
+
+        if (ParseQuery(raw_query, query_words)) {
+            vector<string> words;
+            for (const string& word : query_words.plus_words) {
+                if (word_to_document_freqs_.count(word) == 0) {
+                    continue;
+                }
+                if (word_to_document_freqs_.at(word).count(document_id)) {
+                    words.push_back(word);
+                }
             }
-            if (word_to_document_freqs_.at(word).count(document_id)) {
-                words.push_back(word);
+
+            for (const string& word : query_words.minus_words) {
+                if (word_to_document_freqs_.count(word) == 0) {
+                    continue;
+                }
+                if (word_to_document_freqs_.at(word).count(document_id)) {
+                    words.clear();
+                    break;
+                }
             }
-        }
-        for (const string& word : query_words.minus_words) {
-            if (word_to_document_freqs_.count(word) == 0) {
-                continue;
-            }
-            if (word_to_document_freqs_.at(word).count(document_id)) {
-                words.clear();
-                break;
-            }
-        }
-        return { words, status_.at(document_id).status };
+            result = { words, status_.at(document_id).status };
+            return true;
+        } 
+        return false;
     }
+
+    int GetDocumentId(int index) const {
+        if (index<0 || index>status_.size() - 1) {
+            return SearchServer::INVALID_DOCUMENT_ID;
+        }
+        else {
+            auto it = status_.begin();
+            advance(it, index);
+            return it->first;
+        }
+    }
+
+    /*
+    int GetDocumentId(int index) const {
+        if (index >= 0 && index < status_.size()) {
+            return document_ids_.at(index);
+        }
+        else {
+            return SearchServer::INVALID_DOCUMENT_ID;
+        }
+    }
+    */
 
 private:
     struct DocumentData {
@@ -251,6 +324,14 @@ private:
     map<string, map<int, double>> word_to_document_freqs_;
     map<int, int> documents_rating_;
     map<int, DocumentData> status_;
+    //vector<int> document_ids_;
+
+    static bool IsValidWord(const string& word) {
+        // A valid word must not contain special characters
+        return none_of(word.begin(), word.end(), [](char c) {
+            return c >= '\0' && c < ' ';
+            });
+    }
 
     // вспомогательная функция наличия стоп-слов, авторское решение
     bool IsStopWord(const string& word) const {
@@ -258,14 +339,17 @@ private:
     }
 
     // перебирает слова из ввода, исключает стоп-слова, возвращает вектор
-    vector<string> SplitIntoWordsNoStop(const string& text) const {
-        vector<string> words;
-        for (const string& word : SplitIntoWords(text)) {
-            if (!IsStopWord(word)) {
-                words.push_back(word);
+    [[nodiscard]] bool SplitIntoWordsNoStop(const string& text, vector<string>& split_into_words_no_stop) const {
+        //vector<string> words;
+        if (IsValidWord(text)) {
+            for (const string& word : SplitIntoWords(text)) {
+                if (!IsStopWord(word)) {
+                    split_into_words_no_stop.push_back(word);
+                }
             }
+            return true;
         }
-        return words;
+        return false;
     }
 
     static int ComputeAverageRating(const vector<int>& ratings) {
@@ -284,18 +368,30 @@ private:
         bool is_stop;
     };
 
-    QueryWord ParseQueryWord(string text) const {
+    [[nodiscard]] bool ParseQueryWord(string text, QueryWord& query_word) const {
         bool is_minus = false;
         // Word shouldn't be empty
-        if (text[0] == '-') {
+        if (text[0] == '-' && text[1] != '-' && isblank(text[1])) {
             is_minus = true;
             text = text.substr(1);
+            query_word = {
+                    text,
+                    is_minus,
+                    IsStopWord(text)
+            };
+            return true;
         }
-        return {
-            text,
-            is_minus,
-            IsStopWord(text)
-        };
+
+        if (text[0] != '-') {
+            is_minus = false;
+            query_word = {
+                    text,
+                    is_minus,
+                    IsStopWord(text)
+            };
+            return true;
+        }
+        return false;
     }
 
     struct Query {
@@ -304,20 +400,23 @@ private:
     };
 
     // возвращает set строки ввода (запрос пользователя) без стоп-слов
-    Query ParseQuery(const string& text) const {
-        Query query;
-        for (const string& word : SplitIntoWords(text)) {
-            const QueryWord query_word = ParseQueryWord(word);
-            if (!query_word.is_stop) {
-                if (query_word.is_minus) {
-                    query.minus_words.insert(query_word.data);
-                }
-                else {
-                    query.plus_words.insert(query_word.data);
-                }
+    [[nodiscard]] bool ParseQuery(const string& text, Query& query) const {
+        if (IsValidWord(text)) {
+            for (const string& word : SplitIntoWords(text)) {
+                QueryWord query_word;
+                if (ParseQueryWord(word, query_word)) {
+                    if (!query_word.is_stop) {
+                        if (query_word.is_minus) {
+                            query.minus_words.insert(query_word.data);
+                            return true;
+                        } else {
+                            query.plus_words.insert(query_word.data);
+                        }
+                    } 
+                } else { return false; }
             }
-        }
-        return query;
+        } else { return false; }
+        return true;
     }
 
     // Existence required
@@ -363,7 +462,7 @@ private:
     }
 };
 
-
+/*
 SearchServer CreateSearchServer() {
     SearchServer search_server;
     search_server.SetStopWords(ReadLine());
@@ -388,7 +487,9 @@ SearchServer CreateSearchServer() {
 
     return search_server;
 }
+*/
 
+/*
 // -------- Начало модульных тестов поисковой системы ----------
 
 // Тест проверяет, что поисковая система исключает стоп-слова при добавлении документов
@@ -431,14 +532,14 @@ void TestAddDocument() {
     }
 }
 
-// Проверяем рейтинг и корректное добавление документов без стоп слов
-void TestRatingAndMatchingDocuments() {
-    const int id = 7;
-    const string document = "Test for Rating and MatchDocument"s;
-    const vector<int> rating = { 3, -1, 4, 5 };
-    DocumentStatus status = DocumentStatus::ACTUAL;
+// Проверяем рейтинг
+void TestRating() {
     {
         SearchServer server;
+        const int id = 1;
+        const string document = "First test for Rating"s;
+        const vector<int> rating = { 1, 2, 3, 5, 13, 18 };
+        DocumentStatus status = DocumentStatus::ACTUAL;
         server.AddDocument(id, document, status, rating);
         int quantity = rating.size();
         // int sum = accumulate(rating.begin(), rating.end(), 0);
@@ -447,13 +548,55 @@ void TestRatingAndMatchingDocuments() {
             sum += rat;
         }
         auto total = sum / quantity;
-        vector<Document> ratings = server.FindTopDocuments("Rating"s);
+        vector<Document> ratings = server.FindTopDocuments("First"s);
         ASSERT(total == ratings[0].rating);
     }
     {
         SearchServer server;
+        const int id = 2;
+        const string document = "Second test for Rating"s;
+        const vector<int> rating = { -3, -1, -4, -5, -12 };
+        DocumentStatus status = DocumentStatus::ACTUAL;
         server.AddDocument(id, document, status, rating);
-        string minus = "-Rating"s;
+        int quantity = rating.size();
+        // int sum = accumulate(rating.begin(), rating.end(), 0);
+        int sum = 0;
+        for (const int rat : rating) {
+            sum += rat;
+        }
+        auto total = sum / quantity;
+        vector<Document> ratings = server.FindTopDocuments("Second"s);
+        ASSERT(total == ratings[0].rating);
+    }
+    {
+        SearchServer server;
+        const int id = 3;
+        const string document = "Third test for Rating"s;
+        const vector<int> rating = { 3, -1, -4, 5 };
+        DocumentStatus status = DocumentStatus::ACTUAL;
+        server.AddDocument(id, document, status, rating);
+        int quantity = rating.size();
+        // int sum = accumulate(rating.begin(), rating.end(), 0);
+        int sum = 0;
+        for (const int rat : rating) {
+            sum += rat;
+        }
+        auto total = sum / quantity;
+        vector<Document> ratings = server.FindTopDocuments("Third"s);
+        ASSERT(total == ratings[0].rating);
+    }
+}
+
+// проверяем корректное добавление документов без стоп-слов
+void TestMatchingDocuments() {
+    const int id = 7;
+    const string document = "Test for MatchDocument"s;
+    const vector<int> rating = { 3, -1, 4, 5 };
+    DocumentStatus status = DocumentStatus::ACTUAL;
+    {
+        SearchServer server;
+        server.AddDocument(id, document, status, rating);
+        string minus = "-MatchDocument"s;
         vector<string> test;
         tie(test, status) = server.MatchDocument(minus, id);
         ASSERT(test.empty());
@@ -461,7 +604,7 @@ void TestRatingAndMatchingDocuments() {
     {
         SearchServer server;
         server.AddDocument(id, document, status, rating);
-        string plus = "Rating"s;
+        string plus = "MatchDocument"s;
         vector<string> test;
         tie(test, status) = server.MatchDocument(plus, id);
         ASSERT(!test.empty());
@@ -487,26 +630,30 @@ void TestDocumentStatus() {
         server.AddDocument(11, "First test for DocumentStatus"s, DocumentStatus::BANNED, rating);
         server.AddDocument(8, "Second test for DocumentStatus"s, DocumentStatus::REMOVED, rating);
         server.AddDocument(2, "Third test for DocumentStatus"s, DocumentStatus::BANNED, rating);
+        server.AddDocument(14, "Third test for DocumentStatus"s, DocumentStatus::ACTUAL, rating);
+        server.AddDocument(5, "Third test for DocumentStatus"s, DocumentStatus::IRRELEVANT, rating);
         ASSERT(server.FindTopDocuments("test"s, DocumentStatus::BANNED).size() == 2);
         ASSERT(server.FindTopDocuments("test"s, DocumentStatus::REMOVED).size() == 1);
+        ASSERT(server.FindTopDocuments("test"s, DocumentStatus::IRRELEVANT).size() == 1);
+        ASSERT(server.FindTopDocuments("test"s, DocumentStatus::ACTUAL).size() == 1);
     }
 }
 
-void TestRevelance() {
+void TestRelevance() {
     SearchServer server;
     const vector<int> rating = { 9, -11, -4, 0 };
-    const string word_to_rev = "Revelance"s;
+    const string word_to_rev = "Relevance"s;
     vector<vector<string>> words_to_test{};
     vector<double> TF{}, TF_IDF{};
 
-    words_to_test.push_back(SplitIntoWords("First test for Revelance"s));
-    words_to_test.push_back(SplitIntoWords("Second test for Revelance"s));
-    words_to_test.push_back(SplitIntoWords("Third test for Revelance"s));
-    words_to_test.push_back(SplitIntoWords("First Revelance Second Revelance Third Revelance"s));
-    server.AddDocument(11, "First test for Revelance"s, DocumentStatus::ACTUAL, rating);
-    server.AddDocument(8, "Second test for Revelance"s, DocumentStatus::ACTUAL, rating);
-    server.AddDocument(2, "Third test for Revelance"s, DocumentStatus::BANNED, rating);
-    server.AddDocument(1, "First Revelance Second Revelance Third Revelance"s, DocumentStatus::ACTUAL, rating);
+    words_to_test.push_back(SplitIntoWords("First test for Relevance"s));
+    words_to_test.push_back(SplitIntoWords("Second test for Relevance"s));
+    words_to_test.push_back(SplitIntoWords("Third test for Relevance"s));
+    words_to_test.push_back(SplitIntoWords("First Relevance Second Relevance Third Relevance"s));
+    server.AddDocument(11, "First test for Relevance"s, DocumentStatus::ACTUAL, rating);
+    server.AddDocument(8, "Second test for Relevance"s, DocumentStatus::ACTUAL, rating);
+    server.AddDocument(2, "Third test for Relevance"s, DocumentStatus::BANNED, rating);
+    server.AddDocument(1, "First Relevance Second Relevance Third Relevance"s, DocumentStatus::ACTUAL, rating);
 
     int freq = 0;
     for (auto& document : words_to_test) {
@@ -524,8 +671,7 @@ void TestRevelance() {
         }
     }
 
-    const double EPSILON = 1e-6;
-    sort(TF_IDF.begin(), TF_IDF.end(), [EPSILON](double& lhs, double& rhs) {
+    sort(TF_IDF.begin(), TF_IDF.end(), [](double& lhs, double& rhs) {
             double xhs = lhs - rhs;
             return xhs > EPSILON;
         });
@@ -556,81 +702,71 @@ void TestPredicate() {
 
 // Функция TestSearchServer является точкой входа для запуска тестов
 void TestSearchServer() {
+    RUN_TEST(TestRating);
     RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent);
     RUN_TEST(TestAddDocument);
-    RUN_TEST(TestRatingAndMatchingDocuments);
+    RUN_TEST(TestMatchingDocuments);
     RUN_TEST(TestMinusWords);
     RUN_TEST(TestDocumentStatus);
-    RUN_TEST(TestRevelance);
+    RUN_TEST(TestRelevance);
     RUN_TEST(TestPredicate);
 }
 
 // --------- Окончание модульных тестов поисковой системы -----------
+*/
 
 void PrintDocument(const Document& document) {
     cout << "{ "s
         << "document_id = "s << document.id << ", "s
         << "relevance = "s << document.relevance << ", "s
-        << "rating = "s << document.rating
-        << " }"s << endl;
+        << "rating = "s << document.rating << " }"s << endl;
 }
 
+void Test() {
+    SearchServer search_server(std::string{ "и в на" });
+    vector<Document> documents;
+    search_server.AddDocument(0, "кот в мешке", DocumentStatus::ACTUAL, { 1, 2, 3 });
+    search_server.AddDocument(1, "чук и гек пьют иван-чай", DocumentStatus::ACTUAL, { 3 });
+    std::tuple<std::vector<std::string>, DocumentStatus> docs;
+    int document_id = 0;
+    bool WrongMatch = search_server.MatchDocument("--кот", document_id, docs);
+    bool WrongMatch2 = search_server.FindTopDocuments("и в на"s, documents);
+    if (WrongMatch == true || WrongMatch2 == true) {
+        std::cout << "WRONG MATCH\n";
+    }
+    else {
+        std::cout << "GOOD JOB\n";
+    }
+}
 
 int main() {
-    TestSearchServer();
-    // Если вы видите эту строку, значит все тесты прошли успешно
-    cout << "Search server testing finished"s << endl;
+    setlocale(LC_ALL, "ru");
+    Test();
+    SearchServer search_server("и в на"s);
 
-    SearchServer search_server;
-    search_server.SetStopWords("и в на"s);
+    // Явно игнорируем результат метода AddDocument, чтобы избежать предупреждения
+    // о неиспользуемом результате его вызова
+    (void)search_server.AddDocument(1, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, { 7, 2, 7 });
 
-    search_server.AddDocument(0, "белый кот и модный ошейник"s, DocumentStatus::ACTUAL, { 8, -3 });
-    search_server.AddDocument(1, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, { 7, 2, 7 });
-    search_server.AddDocument(2, "ухоженный пёс выразительные глаза"s, DocumentStatus::ACTUAL, { 5, -12, 2, 1 });
-    search_server.AddDocument(3, "ухоженный скворец евгений"s, DocumentStatus::BANNED, { 9 });
-
-    cout << "ACTUAL by default:"s << endl;
-    for (const Document& document : search_server.FindTopDocuments("пушистый ухоженный кот"s)) {
-        PrintDocument(document);
+    if (!search_server.AddDocument(1, "пушистый пёс и модный ошейник"s, DocumentStatus::ACTUAL, { 1, 2 })) {
+        cout << "Документ не был добавлен, так как его id совпадает с уже имеющимся"s << endl;
     }
 
-    cout << "BANNED:"s << endl;
-    for (const Document& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, DocumentStatus::BANNED)) {
-        PrintDocument(document);
+    if (!search_server.AddDocument(-1, "пушистый пёс и модный ошейник"s, DocumentStatus::ACTUAL, { 1, 2 })) {
+        cout << "Документ не был добавлен, так как его id отрицательный"s << endl;
     }
 
-    cout << "Even ids:"s << endl;
-    for (const Document& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return document_id % 2 == 0; })) {
-        PrintDocument(document);
+    if (!search_server.AddDocument(3, "большой пёс скво\x12рец"s, DocumentStatus::ACTUAL, { 1, 3, 2 })) {
+        cout << "Документ не был добавлен, так как содержит спецсимволы"s << endl;
     }
 
-    return 0;
+    vector<Document> documents;
+    if (search_server.FindTopDocuments("--пушистый"s, documents)) {
+        for (const Document& document : documents) {
+            PrintDocument(document);
+        }
+    }
+    else {
+        cout << "Ошибка в поисковом запросе"s << endl;
+    }
 }
-
-
-/*int main() {
-    SearchServer search_server;
-    search_server.SetStopWords("и в на"s);
-
-    search_server.AddDocument(0, "белый кот и модный ошейник"s, DocumentStatus::ACTUAL, { 8, -3 });
-    search_server.AddDocument(1, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, { 7, 2, 7 });
-    search_server.AddDocument(2, "ухоженный пёс выразительные глаза"s, DocumentStatus::ACTUAL, { 5, -12, 2, 1 });
-    search_server.AddDocument(3, "ухоженный скворец евгений"s, DocumentStatus::BANNED, { 9 });
-
-    cout << "ACTUAL by default:"s << endl;
-    for (const Document& document : search_server.FindTopDocuments("пушистый ухоженный кот"s)) {
-        PrintDocument(document);
-    }
-
-    cout << "BANNED:"s << endl;
-    for (const Document& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, DocumentStatus::BANNED)) {
-        PrintDocument(document);
-    }
-
-    cout << "Even ids:"s << endl;
-    for (const Document& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return document_id % 2 == 0; })) {
-        PrintDocument(document);
-    }
-
-    return 0;
-}*/
