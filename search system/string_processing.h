@@ -3,6 +3,7 @@
 #include <string>
 #include <set>
 
+
 // перебирает слова из ввода, возвращает вектор
 std::vector<std::string> SplitIntoWords(const std::string& text);
 

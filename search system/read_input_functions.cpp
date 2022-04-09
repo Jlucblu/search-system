@@ -1,5 +1,6 @@
 #include "read_input_functions.h"
 
+
 // ввод текста
 std::string ReadLine() {
     std::string s;

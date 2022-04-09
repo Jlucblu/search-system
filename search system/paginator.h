@@ -1,9 +1,11 @@
 #pragma once
 #include <iostream>
 #include <vector>
+
 #include "document.h"
 
 using namespace std::string_literals;
+
 
 template <typename Iterator>
 class IteratorRange {

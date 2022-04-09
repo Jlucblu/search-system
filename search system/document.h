@@ -1,5 +1,6 @@
 #pragma once
 
+
 struct Document {
     Document() = default;
     Document(int id, double relevance, int rating);

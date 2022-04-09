@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 
+
 // ввод текста
 std::string ReadLine();
 
