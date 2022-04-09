@@ -43,6 +43,8 @@ public:
     explicit SearchServer(const StringCollection& stop_words); 
     explicit SearchServer(const std::string& stop_words_text);
 
+    void SetStopWords(const std::string& text);
+
     bool AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings);
 
     // Возвращает топ-5 самых релевантных документов в виде пар: {id, релевантность}
@@ -72,7 +74,7 @@ private:
         DocumentStatus status;
     };
 
-    const std::set<std::string> stop_words_;
+    std::set<std::string> stop_words_;
     std::map<std::string, std::map<int, double>> word_to_id_freqs_;
     std::map<int, std::map<std::string, double>> id_to_word_freqs_;
     std::map<int, DocumentData> documents_;

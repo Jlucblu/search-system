@@ -9,6 +9,13 @@ SearchServer::SearchServer(const std::string& stop_words_text)
 }
 
 
+void SearchServer::SetStopWords(const std::string& text) {
+    for (const std::string& word : SplitIntoWords(text)) {
+        stop_words_.insert(word);
+    }
+}
+
+
 bool SearchServer::AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings) {
     if (document_id < 0) {
         throw std::invalid_argument("Negative ID"s);
@@ -87,9 +94,7 @@ void SearchServer::RemoveDocument(int document_id) {
             word_to_id_freqs_.at(word).erase(document_id);
         }
         id_to_word_freqs_.erase(document_id);
-
         documents_.erase(document_id);
-
         document_ids_.erase(std::find(document_ids_.begin(), document_ids_.end(), document_id));
     }
 }
@@ -106,10 +111,10 @@ const std::map<std::string, double>& SearchServer::GetWordFrequencies(int docume
     }
 }
 
+
 std::vector<int>::const_iterator SearchServer::begin() const {
     return document_ids_.begin();
 }
-
 
 std::vector<int>::const_iterator SearchServer::end() const {
     return document_ids_.end();
