@@ -21,9 +21,6 @@
     <ClCompile Include="document.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="paginator.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
     <ClCompile Include="read_input_functions.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>

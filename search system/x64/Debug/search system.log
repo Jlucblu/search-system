@@ -1,4 +1,11 @@
-﻿  main.cpp
+﻿  request_queue.cpp
+C:\Users\Jlucblu\Desktop\C++\search system\search system\request_queue.cpp(11,29): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+C:\Users\Jlucblu\Desktop\C++\search system\search system\request_queue.cpp(17,29): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+  search_server.cpp
+C:\Users\Jlucblu\Desktop\C++\search system\search system\search_server.cpp(53,29): warning C4267: return: преобразование из "size_t" в "int"; возможна потеря данных
+C:\Users\Jlucblu\Desktop\C++\search system\search system\search_server.cpp(151,34): warning C4267: инициализация: преобразование из "size_t" в "int"; возможна потеря данных
+  main.cpp
+  remove_duplicates.cpp
   test_example_functions.cpp
 C:\Users\Jlucblu\Desktop\C++\search system\search system\test_example_functions.cpp(103,37): warning C4267: инициализация: преобразование из "size_t" в "int"; возможна потеря данных
 C:\Users\Jlucblu\Desktop\C++\search system\search system\test_example_functions.cpp(120,37): warning C4267: инициализация: преобразование из "size_t" в "int"; возможна потеря данных
@@ -7,4 +14,5 @@ C:\Users\Jlucblu\Desktop\C++\search system\search system\test_example_functions.
 C:\Users\Jlucblu\Desktop\C++\search system\search system\test_example_functions.cpp(253,66): warning C4267: инициализация: преобразование из "size_t" в "int"; возможна потеря данных
 C:\Users\Jlucblu\Desktop\C++\search system\search system\test_example_functions.cpp(255,90): warning C4267: инициализация: преобразование из "size_t" в "int"; возможна потеря данных
   Создание кода...
+C:\Users\Jlucblu\Desktop\C++\search system\search system\search_server.cpp(108): warning C4172: возвращение адреса локальной или временной переменной
   search system.vcxproj -> C:\Users\Jlucblu\Desktop\C++\search system\x64\Debug\search system.exe

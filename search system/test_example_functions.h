@@ -111,13 +111,16 @@ void AssertImpl(bool value, const string& expr_str, const string& file, const st
 #define ASSERT(expr) AssertImpl(!!(expr), #expr, __FILE__, __FUNCTION__, __LINE__, ""s)
 #define ASSERT_HINT(expr, hint) AssertImpl(!!(expr), #expr, __FILE__, __FUNCTION__, __LINE__, (hint))
 
+
 template <typename Function>
 void RunTestImpl(const Function& func, const string& function_name) {
     func();
     cerr << function_name << " OK" << endl;
 }
 
+
 #define RUN_TEST(func) RunTestImpl(func, #func)
+
 
 int AverageRating(const vector<int>& ratings);
 
@@ -134,6 +137,5 @@ void TestDocumentStatus();
 void TestRelevance();
 void TestPredicate();
 void TestAverageRating();
-void TestComputeRelevance();
 void TestRemoveDuplicates();
 void TestSearchServer();

@@ -11,6 +11,7 @@ using namespace std;
 
 
 int main() {
+    TestSearchServer();
     SearchServer search_server("and with"s);
 
     search_server.AddDocument(1, "funny pet and nasty rat"s, DocumentStatus::ACTUAL, {7, 2, 7});

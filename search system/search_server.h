@@ -35,8 +35,6 @@ class SearchServer {
 public:
     // Defines an invalid document id
     // You can refer this constant as SearchServer::INVALID_DOCUMENT_ID
-    inline static constexpr int INVALID_DOCUMENT_ID = -1;
-
     SearchServer() = default;
 
     template <typename StringCollection>
@@ -60,8 +58,8 @@ public:
 
     const std::map<std::string, double>& GetWordFrequencies(int document_id) const;
 
-    [[nodiscard]] std::vector<int>::const_iterator begin() const;
-    [[nodiscard]] std::vector<int>::const_iterator end() const;
+    [[nodiscard]] std::set<int>::const_iterator begin() const;
+    [[nodiscard]] std::set<int>::const_iterator end() const;
 
     /*int GetDocumentId(int index) const;*/
 
@@ -78,7 +76,7 @@ private:
     std::map<std::string, std::map<int, double>> word_to_id_freqs_;
     std::map<int, std::map<std::string, double>> id_to_word_freqs_;
     std::map<int, DocumentData> documents_;
-    std::vector<int> document_ids_;
+    std::set<int> document_ids_;
 
 
     // A valid word must not contain special characters
