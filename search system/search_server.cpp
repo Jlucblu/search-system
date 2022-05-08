@@ -101,11 +101,12 @@ void SearchServer::RemoveDocument(int document_id) {
 }
 
 
+std::map<std::string, double> empty_map{};
 const std::map<std::string, double>& SearchServer::GetWordFrequencies(int document_id) const {
     if (id_to_word_freqs_.count(document_id)) {
         return id_to_word_freqs_.at(document_id);
     }
-    return {};
+    return empty_map;
 }
 
 

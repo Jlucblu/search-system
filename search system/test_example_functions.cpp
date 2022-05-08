@@ -325,7 +325,7 @@ void TestSearchServer() {
     RUN_TEST(TestDocumentStatus);
     RUN_TEST(TestRelevance);
     RUN_TEST(TestPredicate);
-    //RUN_TEST(TestAverageRating);
+    RUN_TEST(TestAverageRating);
     RUN_TEST(TestRemoveDuplicates);
 }
 

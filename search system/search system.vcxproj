@@ -141,6 +141,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="document.cpp" />
+    <ClCompile Include="process_queries.cpp" />
     <ClCompile Include="read_input_functions.cpp" />
     <ClCompile Include="request_queue.cpp" />
     <ClCompile Include="search_server.cpp" />
@@ -151,6 +152,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="document.h" />
+    <ClInclude Include="process_queries.h" />
     <ClInclude Include="remove_duplicates.h" />
     <ClInclude Include="log_duration.h" />
     <ClInclude Include="paginator.h" />
