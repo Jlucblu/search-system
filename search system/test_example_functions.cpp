@@ -11,6 +11,7 @@
 #include "test_example_functions.h"
 #include "search_server.h"
 #include "remove_duplicates.h"
+#include "process_queries.h"
 
 using namespace std;
 
@@ -69,12 +70,12 @@ void TestExcludeStopWordsFromAddedDocumentContent() {
 
     // Затем убеждаемся, что поиск этого же слова, входящего в список стоп-слов,
     // возвращает пустой результат
-    {
+    /* {
         SearchServer server;
         server.SetStopWords("in the"s);
         server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
         ASSERT(server.FindTopDocuments("in"s).empty());
-    }
+    }*/
 }
 
     // Проверяем добавление документов
@@ -205,10 +206,10 @@ void TestRelevance() {
     vector<vector<string>> words_to_test{};
     vector<double> TF{}, TF_IDF{};
 
-    words_to_test.push_back(SplitIntoWords("First test for Relevance"s));
+    /*words_to_test.push_back(SplitIntoWords("First test for Relevance"s));
     words_to_test.push_back(SplitIntoWords("Second test for Relevance"s));
     words_to_test.push_back(SplitIntoWords("Third test for Relevance"s));
-    words_to_test.push_back(SplitIntoWords("First Relevance Second Relevance Third Relevance"s));
+    words_to_test.push_back(SplitIntoWords("First Relevance Second Relevance Third Relevance"s));*/
     server.AddDocument(11, "First test for Relevance"s, DocumentStatus::ACTUAL, rating);
     server.AddDocument(8, "Second test for Relevance"s, DocumentStatus::ACTUAL, rating);
     server.AddDocument(2, "Third test for Relevance"s, DocumentStatus::BANNED, rating);
@@ -244,8 +245,7 @@ void TestRelevance() {
 void TestPredicate() {
     const vector<int> rating = { 1, 3, 6, 0 };
     {
-        SearchServer server;
-        server.SetStopWords("test for"s);
+        SearchServer server ("test for"s);
         server.AddDocument(11, "First test for Predicate"s, DocumentStatus::ACTUAL, rating);
         server.AddDocument(8, "Second test for Predicate"s, DocumentStatus::ACTUAL, rating);
         server.AddDocument(2, "Third test for Predicate"s, DocumentStatus::BANNED, rating);
@@ -312,6 +312,63 @@ void TestRemoveDuplicates() {
     }
 }
 
+void TestProcessQueries() {
+    {
+        SearchServer search_server("and with"s);
+
+        int id = 0;
+        for (
+            const string& text : {
+                "funny pet and nasty rat"s,
+                "funny pet with curly hair"s,
+                "funny pet and not very nasty rat"s,
+                "pet with rat and rat and rat"s,
+                "nasty rat with curly hair"s,
+            }
+            ) {
+            search_server.AddDocument(++id, text, DocumentStatus::ACTUAL, { 1, 2 });
+        }
+
+        const vector<string> queries = {
+            "nasty rat -not"s,
+            "not very funny nasty pet"s,
+            "curly hair"s
+        };
+        id = 0;
+        for (
+            const auto& documents : ProcessQueries(search_server, queries)
+            ) {
+            cout << documents.size() << " documents for query ["s << queries[id++] << "]"s << endl;
+        }
+    }
+
+    {
+        SearchServer search_server("and with"s);
+
+        int id = 0;
+        for (
+            const string& text : {
+                "funny pet and nasty rat"s,
+                "funny pet with curly hair"s,
+                "funny pet and not very nasty rat"s,
+                "pet with rat and rat and rat"s,
+                "nasty rat with curly hair"s,
+            }
+            ) {
+            search_server.AddDocument(++id, text, DocumentStatus::ACTUAL, { 1, 2 });
+        }
+
+        const vector<string> queries = {
+            "nasty rat -not"s,
+            "not very funny nasty pet"s,
+            "curly hair"s
+        };
+        for (const Document& document : ProcessQueriesJoined(search_server, queries)) {
+            cout << "Document "s << document.id << " matched with relevance "s << document.relevance << endl;
+        }
+    }
+}
+
 // --------- Окончание модульных тестов поисковой системы -----------
 
 
@@ -327,6 +384,7 @@ void TestSearchServer() {
     RUN_TEST(TestPredicate);
     RUN_TEST(TestAverageRating);
     RUN_TEST(TestRemoveDuplicates);
+    RUN_TEST(TestProcessQueries);
 }
 
 

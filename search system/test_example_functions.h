@@ -139,3 +139,4 @@ void TestPredicate();
 void TestAverageRating();
 void TestRemoveDuplicates();
 void TestSearchServer();
+void TestProcessQueries();

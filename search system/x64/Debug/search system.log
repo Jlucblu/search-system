@@ -1,6 +1,2 @@
 ﻿  main.cpp
-  request_queue.cpp
-C:\Users\Jlucblu\Desktop\C++\search system\search system\request_queue.cpp(12,29): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
-C:\Users\Jlucblu\Desktop\C++\search system\search system\request_queue.cpp(18,29): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
-  Создание кода...
   search system.vcxproj -> C:\Users\Jlucblu\Desktop\C++\search system\x64\Debug\search system.exe

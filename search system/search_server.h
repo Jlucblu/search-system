@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <stack>
 #include <cmath>
+#include <execution>
 
 #include "string_processing.h"
 #include "document.h"
@@ -64,7 +65,8 @@ public:
     /*int GetDocumentId(int index) const;*/
 
     void RemoveDocument(int document_id);
-
+    template<typename ExecutionPolicy>
+    void RemoveDocument(ExecutionPolicy&& policy, int document_id);
 
 private:
     struct DocumentData {
@@ -181,4 +183,24 @@ std::vector<Document> SearchServer::FindAllDocuments(const Query& query_words, D
     }
 
     return matched_documents;
+}
+
+template<typename ExecutionPolicy>
+void SearchServer::RemoveDocument(ExecutionPolicy&& policy, int document_id) {
+    const auto& words_freqs = GetWordFrequencies(document_id);
+    if (!words_freqs.empty()) {
+        std::vector<std::string> words;
+        words.reserve(words_freqs.size());
+        std::for_each(policy, words_freqs.begin(), words_freqs.end(), [&words](auto& wf) {
+            words.push_back(std::string(wf.first));
+            });
+
+        std::for_each(policy, words.begin(), words.end(), [this, document_id](const auto& word) {
+            return word_to_id_freqs_[word].erase(document_id);
+            });
+    }
+
+    document_ids_.erase(document_id);
+    documents_.erase(document_id);
+    id_to_word_freqs_.erase(document_id);
 }
