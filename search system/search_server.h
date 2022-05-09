@@ -9,6 +9,7 @@
 #include <stack>
 #include <cmath>
 #include <execution>
+#include <tuple>
 
 #include "string_processing.h"
 #include "document.h"
@@ -55,7 +56,9 @@ public:
     int GetDocumentCount() const;
 
     // сопоставляет запрос и вывод поисковой системы, возвращает релевантность
-    std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
+    std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(std::string raw_query, int document_id) const;
+    std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(std::execution::sequenced_policy policy, std::string raw_query, int document_id) const;
+    std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(std::execution::parallel_policy policy, std::string raw_query, int document_id) const;
 
     const std::map<std::string, double>& GetWordFrequencies(int document_id) const;
 
@@ -74,12 +77,22 @@ private:
         DocumentStatus status;
     };
 
+    struct Query {
+        std::vector<std::string> minus_words;
+        std::vector<std::string> plus_words;
+    };
+
+    struct QueryWord {
+        std::string data;
+        bool is_minus;
+        bool is_stop;
+    };
+
     std::set<std::string> stop_words_;
     std::map<std::string, std::map<int, double>> word_to_id_freqs_;
     std::map<int, std::map<std::string, double>> id_to_word_freqs_;
     std::map<int, DocumentData> documents_;
     std::set<int> document_ids_;
-
 
     // A valid word must not contain special characters
     static bool IsValidWord(const std::string& word);
@@ -92,22 +105,14 @@ private:
 
     static int ComputeAverageRating(const std::vector<int>& ratings);
 
-    struct QueryWord {
-        std::string data;
-        bool is_minus;
-        bool is_stop;
-    };
-
     // Empty result by initializing it with default constructed QueryWord
     [[nodiscard]] QueryWord ParseQueryWord(std::string text) const;
 
-    struct Query {
-        std::set<std::string> minus_words;
-        std::set<std::string> plus_words;
-    };
 
     // возвращает set строки ввода (запрос пользователя) без стоп-слов
-    [[nodiscard]] Query ParseQuery(const std::string& text) const;
+    Query ParseQuery(const std::string& text) const;
+    Query ParseQuery(std::execution::parallel_policy policy, const std::string& text) const;
+    Query ParseQuery(std::execution::sequenced_policy policy, const std::string& text) const;
 
     // Existence required
     double ComputeWordInverseDocumentFreq(const std::string& word) const;

@@ -128,6 +128,7 @@ vector<string> SplitToWords(const string& line);
 
 // _______________________________________ //
 
+void TestSearchServer();
 void TestExcludeStopWordsFromAddedDocumentContent();
 void TestRating();
 void TestAddDocument();
@@ -138,5 +139,5 @@ void TestRelevance();
 void TestPredicate();
 void TestAverageRating();
 void TestRemoveDuplicates();
-void TestSearchServer();
 void TestProcessQueries();
+void TestRemoveDocuments();

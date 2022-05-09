@@ -1,2 +1,7 @@
-﻿  main.cpp
+﻿  search_server.cpp
+C:\Users\Jlucblu\Desktop\C++\search system\search system\search_server.cpp(53,29): warning C4267: return: преобразование из "size_t" в "int"; возможна потеря данных
+C:\Users\Jlucblu\Desktop\C++\search system\search system\search_server.cpp(211,34): warning C4267: инициализация: преобразование из "size_t" в "int"; возможна потеря данных
+document.obj : warning LNK4099: "vc143.pdb" PDB не найден с "document.obj" или на "C:\Users\Jlucblu\Desktop\C++\search system\x64\Debug\vc143.pdb"; компоновка объекта выполняется как при отсутствии отладочных данных
+read_input_functions.obj : warning LNK4099: "vc143.pdb" PDB не найден с "read_input_functions.obj" или на "C:\Users\Jlucblu\Desktop\C++\search system\x64\Debug\vc143.pdb"; компоновка объекта выполняется как при отсутствии отладочных данных
+string_processing.obj : warning LNK4099: "vc143.pdb" PDB не найден с "string_processing.obj" или на "C:\Users\Jlucblu\Desktop\C++\search system\x64\Debug\vc143.pdb"; компоновка объекта выполняется как при отсутствии отладочных данных
   search system.vcxproj -> C:\Users\Jlucblu\Desktop\C++\search system\x64\Debug\search system.exe
