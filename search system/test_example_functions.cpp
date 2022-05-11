@@ -157,7 +157,7 @@ void TestMatchingDocuments() {
         SearchServer server;
         server.AddDocument(id, document, status, rating);
         string minus = "-MatchDocument"s;
-        vector<string> test;
+        vector<string_view> test;
         tie(test, status) = server.MatchDocument(minus, id);
         ASSERT(test.empty());
     }
@@ -165,7 +165,7 @@ void TestMatchingDocuments() {
         SearchServer server;
         server.AddDocument(id, document, status, rating);
         string plus = "MatchDocument"s;
-        vector<string> test;
+        vector<string_view> test;
         tie(test, status) = server.MatchDocument(plus, id);
         ASSERT(!test.empty());
     }

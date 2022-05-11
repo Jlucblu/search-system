@@ -74,19 +74,20 @@ void Test(string_view mark, SearchServer search_server, const string& query, Exe
 #define TEST(policy) Test(#policy, search_server, query, execution::policy)
 
 int main() {
+    //TestSearchServer();
     {
         SearchServer search_server("and with"s);
 
         int id = 0;
-        for (
-            const string& text : {
+        for (const string& text : {
                 "funny pet and nasty rat"s,
                 "funny pet with curly hair"s,
                 "funny pet and not very nasty rat"s,
                 "pet with rat and rat and rat"s,
                 "nasty rat with curly hair"s,
-            }
-            ) {
+            })
+
+        {
             search_server.AddDocument(++id, text, DocumentStatus::ACTUAL, { 1, 2 });
         }
 
@@ -110,7 +111,7 @@ int main() {
             // 0 words for document 3
         }
     }
-
+    /*
     {
         mt19937 generator;
 
@@ -126,5 +127,5 @@ int main() {
 
         TEST(seq);
         TEST(par);
-    }
+    }*/
 }
