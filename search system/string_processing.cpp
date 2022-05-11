@@ -1,7 +1,7 @@
 #include "string_processing.h"
 
 
-std::vector<std::string_view> SplitIntoWords(std::string_view text) {
+/*std::vector<std::string_view> SplitIntoWords(std::string_view text) {
     std::vector<std::string_view> result;
     const int64_t pos_end = text.npos;
     while (true) {
@@ -13,9 +13,9 @@ std::vector<std::string_view> SplitIntoWords(std::string_view text) {
         }
     }
     return result;
-}
+}*/
 
-/*std::vector<std::string_view> SplitIntoWords(std::string_view text) {
+std::vector<std::string_view> SplitIntoWords(std::string_view text) {
     std::vector<std::string_view> words;
     std::string_view ttext = text; ttext.remove_prefix(std::min(ttext.size(), ttext.find_first_not_of(" ")));
     auto pos = ttext.find(' ', 0);
@@ -31,7 +31,7 @@ std::vector<std::string_view> SplitIntoWords(std::string_view text) {
         pos = ttext.find(' ', 0);
     }
     return words;
-}*/
+}
 
 /*std::vector<std::string> SplitIntoWords(const std::string& text) {
     std::vector<std::string> words;

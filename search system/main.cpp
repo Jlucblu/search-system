@@ -115,10 +115,10 @@ int main() {
     {
         mt19937 generator;
 
-        const auto dictionary = GenerateDictionary(generator, 50, 10);
-        const auto documents = GenerateQueries(generator, dictionary, 500, 20);
+        const auto dictionary = GenerateDictionary(generator, 10'000, 25);
+        const auto documents = GenerateQueries(generator, dictionary, 10'000, 100);
 
-        const string query = GenerateQuery(generator, dictionary, 100, 0.1);
+        const string query = GenerateQuery(generator, dictionary, 500, 0.1);
 
         SearchServer search_server(dictionary[0]);
         for (size_t i = 0; i < documents.size(); ++i) {
@@ -128,5 +128,4 @@ int main() {
         TEST(seq);
         TEST(par);
     }
-    
 }
