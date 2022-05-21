@@ -150,9 +150,9 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="remove_duplicates.cpp" />
     <ClCompile Include="string_processing.cpp" />
-    <ClCompile Include="test_example_functions.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="concurrent_map.h" />
     <ClInclude Include="document.h" />
     <ClInclude Include="process_queries.h" />
     <ClInclude Include="remove_duplicates.h" />
@@ -162,7 +162,7 @@
     <ClInclude Include="request_queue.h" />
     <ClInclude Include="search_server.h" />
     <ClInclude Include="string_processing.h" />
-    <ClInclude Include="test_example_functions.h" />
+    <ClInclude Include="test_framework.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -141,3 +141,4 @@ void TestAverageRating();
 void TestRemoveDuplicates();
 void TestProcessQueries();
 void TestRemoveDocuments();
+void TestMatchDocument();

@@ -43,7 +43,7 @@ void SearchServer::AddDocument(int document_id, std::string_view document, Docum
 
 
 std::vector<Document> SearchServer::FindTopDocuments(std::string_view raw_query, DocumentStatus status) const {
-    return FindTopDocuments(raw_query, [status](int document_id, DocumentStatus document_status, int rating) {
+    return FindTopDocuments(raw_query, [status](int id, DocumentStatus document_status, int rating) {
         return document_status == status;
         });
 }
@@ -86,7 +86,6 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
 }
 
 
-
 std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(std::execution::sequenced_policy policy, std::string_view raw_query, int document_id) const {
     return SearchServer::MatchDocument(raw_query, document_id);
 }
@@ -127,7 +126,6 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
 }
 
 
-
 /*int SearchServer::GetDocumentId(int index) const {
     if (index >= 0 && index < GetDocumentCount()) {
         return document_ids_[index];
@@ -146,7 +144,6 @@ void SearchServer::RemoveDocument(int document_id) {
         id_to_word_freqs_.erase(document_id);
         documents_.erase(document_id);
         document_ids_.erase(std::find(document_ids_.begin(), document_ids_.end(), document_id));
-
 }
 
 
@@ -239,6 +236,7 @@ SearchServer::Query SearchServer::ParseQuery(std::string_view text) const {
     return result;
 }
 
+
 SearchServer::Query SearchServer::ParseQuery(std::execution::parallel_policy, std::string_view text) const {
     Query result;
     for (std::string_view& word : SplitIntoWords(text)) {
@@ -255,16 +253,18 @@ SearchServer::Query SearchServer::ParseQuery(std::execution::parallel_policy, st
     return result;
 }
 
+
 SearchServer::Query SearchServer::ParseQuery(std::execution::sequenced_policy policy, std::string_view text) const {
     return ParseQuery(text);
 }
+
 
 double SearchServer::ComputeWordInverseDocumentFreq(std::string_view word) const {
     return log(GetDocumentCount() * 1.0 / word_to_id_freqs_.at(std::string(word)).size());
 }
 
 
-[[nodiscard]] SearchServer::QueryWord SearchServer::ParseQueryWord(std::string_view text) const {
+SearchServer::QueryWord SearchServer::ParseQueryWord(std::string_view text) const {
     if (text.empty()) {
         throw std::invalid_argument("String is empty"s);
     }
